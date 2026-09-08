@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import { resolvePort } from "../shared/port.js";
 import { getOrCreateToken } from "../shared/token.js";
+import { trySpawnPopup } from "../shared/browser.js";
 import type {
   DashboardToServerMessage,
   ServerToDashboardMessage,
@@ -206,6 +207,15 @@ function main(): void {
       process.exit(0);
     }
     process.exit(1);
+  });
+
+  // The instant this process actually becomes the live server, there is by
+  // definition no dashboard connected yet (it's a fresh process) — open one.
+  // Firing on "listening" rather than unconditionally in `main()` guarantees
+  // this runs exactly once, only for the process that won the bind race
+  // above (a loser calls `process.exit(0)` before ever reaching this event).
+  httpServer.on("listening", () => {
+    trySpawnPopup(port, token);
   });
 
   httpServer.listen(port, "127.0.0.1");

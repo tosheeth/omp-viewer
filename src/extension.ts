@@ -2,7 +2,7 @@ import type { AgentToolResult, ExtensionAPI, ExtensionContext, ToolResultEvent }
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import { DashboardLink } from "./client/link.js";
-import { trySpawnPopup } from "./client/spawn.js";
+import { trySpawnPopup } from "./shared/browser.js";
 import { resolvePort } from "./shared/port.js";
 import { getOrCreateToken } from "./shared/token.js";
 import type { AskAnswer, AskQuestion, TodoPhase } from "./shared/types.js";

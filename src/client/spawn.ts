@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
@@ -51,62 +50,6 @@ export function trySpawnServer(port: number): boolean {
     stdio: "ignore",
     windowsHide: true,
     env: { ...process.env, OMP_DASHBOARD_PORT: String(port) },
-  });
-  child.unref();
-  return true;
-}
-
-type BrowserCandidate = { kind: "path"; path: string } | { kind: "command"; command: string };
-
-/**
- * Popup browser candidates, per platform. Windows Edge is rarely on PATH,
- * so those candidates are checked as absolute Program Files paths; Linux
- * browsers are normally PATH-installed by their package manager, so those
- * are checked with the same PATH-probe technique used for `node`/`bun`
- * above. Other platforms get no candidates — `trySpawnPopup` then no-ops,
- * per the graceful-degradation requirement.
- */
-function browserCandidates(): BrowserCandidate[] {
-  if (process.platform === "win32") {
-    return [
-      join(process.env["PROGRAMFILES(X86)"] ?? "", "Microsoft", "Edge", "Application", "msedge.exe"),
-      join(process.env.PROGRAMFILES ?? "", "Microsoft", "Edge", "Application", "msedge.exe"),
-      join(process.env.LOCALAPPDATA ?? "", "Microsoft", "Edge", "Application", "msedge.exe"),
-    ].map((path) => ({ kind: "path", path }));
-  }
-  if (process.platform === "linux") {
-    return ["microsoft-edge-stable", "microsoft-edge", "google-chrome-stable", "google-chrome", "chromium-browser", "chromium"].map(
-      (command) => ({ kind: "command", command }),
-    );
-  }
-  return [];
-}
-
-function findBrowser(): string | undefined {
-  for (const candidate of browserCandidates()) {
-    if (candidate.kind === "path") {
-      if (candidate.path.length > 0 && existsSync(candidate.path)) return candidate.path;
-    } else if (commandRuns(candidate.command, ["--version"])) {
-      return candidate.command;
-    }
-  }
-  return undefined;
-}
-
-/**
- * Open the popup in a chromeless app-mode browser window. No-ops (returns
- * false) when no candidate browser can be located — per the spec's
- * graceful-degradation requirement, the extension and its hooks keep
- * working either way.
- */
-export function trySpawnPopup(port: number, token: string): boolean {
-  const browserPath = findBrowser();
-  if (!browserPath) return false;
-
-  const url = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
-  const child = spawn(browserPath, [`--app=${url}`, "--window-size=380,720"], {
-    detached: true,
-    stdio: "ignore",
   });
   child.unref();
   return true;

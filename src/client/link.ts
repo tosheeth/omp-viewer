@@ -1,4 +1,4 @@
-import { trySpawnPopup, trySpawnServer } from "./spawn.js";
+import { trySpawnServer } from "./spawn.js";
 import type { AskAnswer, ServerToSessionMessage, SessionToServerMessage, TodoPhase } from "../shared/types.js";
 
 const CONNECT_TIMEOUT_MS = 300;
@@ -45,7 +45,6 @@ export class DashboardLink {
   private closed = false;
   private reconnectHandle: unknown;
   private connectTimeoutHandle: unknown;
-  private spawnedServer = false;
   dashboardConnected = false;
 
   constructor(private readonly opts: DashboardLinkOptions) {}
@@ -110,13 +109,6 @@ export class DashboardLink {
     const connected = parsed.type === "welcome" ? parsed.dashboardConnected : parsed.connected;
     this.dashboardConnected = connected;
     this.opts.onDashboardStateChange?.(connected);
-
-    // Only the session that itself spawned the server also opens the
-    // popup, and only if nothing is already showing one — this is what
-    // keeps "always-available popup" from becoming "one popup per session".
-    if (parsed.type === "welcome" && this.spawnedServer && !connected) {
-      trySpawnPopup(this.opts.port, this.opts.token);
-    }
   }
 
   private handleDisconnect(socket: WebSocket, attempt: number): void {
@@ -125,8 +117,8 @@ export class DashboardLink {
     if (this.closed) return;
 
     if (attempt === 0) {
-      this.spawnedServer = trySpawnServer(this.opts.port);
-      if (!this.spawnedServer) {
+      const spawnedServer = trySpawnServer(this.opts.port);
+      if (!spawnedServer) {
         this.opts.onLog?.(
           "omp-viewer: no server reachable and no JS runtime found to spawn one; dashboard link disabled for this session",
         );
