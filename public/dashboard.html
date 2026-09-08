@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>omp sessions</title>
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body>
+    <header>
+      <h1>omp sessions</h1>
+      <span id="conn-state" class="conn-state">connecting&hellip;</span>
+    </header>
+    <nav id="tabs"></nav>
+    <main id="panel"></main>
+
+    <template id="tab-template">
+      <button type="button" class="tab">
+        <span class="tab-status-dot"></span>
+        <span class="tab-label"></span>
+      </button>
+    </template>
+
+    <template id="panel-template">
+      <article class="session">
+        <div class="awaiting-banner">Waiting for your response</div>
+        <div class="session-head">
+          <span class="status-dot"></span>
+          <span class="session-name"></span>
+          <span class="session-cwd"></span>
+        </div>
+        <div class="session-meta">
+          <span class="last-tool"></span>
+          <span class="last-activity"></span>
+        </div>
+        <div class="context-bar"><div class="context-bar-fill"></div></div>
+        <div class="todo-phases"></div>
+      </article>
+    </template>
+
+    <script src="/dashboard.js"></script>
+  </body>
+</html>
