@@ -2,6 +2,7 @@ import type {
   ContextUsage,
   SessionSnapshot,
   SessionStatus,
+  SessionUsage,
   TodoPhase,
 } from "../shared/types.js";
 
@@ -45,9 +46,19 @@ export class SessionRegistry {
     });
   }
 
-  setAwaitingInput(sessionId: string, waiting: boolean): void {
+  /** Returns true exactly when this call transitions the session from not-awaiting to awaiting — the toast trigger edge. */
+  setAwaitingInput(sessionId: string, waiting: boolean): boolean {
+    const s = this.sessions.get(sessionId);
+    if (!s) return false;
+    const becameAwaiting = waiting && !s.awaitingInput;
+    s.awaitingInput = waiting;
+    s.lastActivity = Date.now();
+    return becameAwaiting;
+  }
+
+  setUsage(sessionId: string, usage: SessionUsage): void {
     this.touch(sessionId, (s) => {
-      s.awaitingInput = waiting;
+      s.usage = usage;
     });
   }
 

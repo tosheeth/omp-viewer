@@ -1,17 +1,19 @@
 import { trySpawnPopup, trySpawnServer } from "./spawn.js";
-import type { ServerToSessionMessage, SessionToServerMessage, TodoPhase } from "../shared/types.js";
+import type { AskAnswer, ServerToSessionMessage, SessionToServerMessage, TodoPhase } from "../shared/types.js";
 
 const CONNECT_TIMEOUT_MS = 300;
 const MAX_BACKOFF_MS = 5000;
 
 export interface DashboardLinkOptions {
   port: number;
+  token: string;
   sessionId: string;
   pid: number;
   cwd: string;
   getSessionName: () => string | undefined;
   initialTodoPhases: TodoPhase[];
   onDashboardStateChange?: (connected: boolean) => void;
+  onAskAnswer?: (requestId: string, answers: AskAnswer[]) => void;
   onLog?: (message: string) => void;
   /**
    * Extensions must not use raw setTimeout for background work — a throw
@@ -87,6 +89,7 @@ export class DashboardLink {
     this.clearConnectTimeout();
     const hello: SessionToServerMessage = {
       type: "hello",
+      token: this.opts.token,
       sessionId: this.opts.sessionId,
       pid: this.opts.pid,
       cwd: this.opts.cwd,
@@ -98,6 +101,12 @@ export class DashboardLink {
 
   private handleMessage(ev: MessageEvent): void {
     const parsed = JSON.parse(String(ev.data)) as ServerToSessionMessage;
+
+    if (parsed.type === "ask_answer") {
+      this.opts.onAskAnswer?.(parsed.requestId, parsed.answers);
+      return;
+    }
+
     const connected = parsed.type === "welcome" ? parsed.dashboardConnected : parsed.connected;
     this.dashboardConnected = connected;
     this.opts.onDashboardStateChange?.(connected);
@@ -106,7 +115,7 @@ export class DashboardLink {
     // popup, and only if nothing is already showing one — this is what
     // keeps "always-available popup" from becoming "one popup per session".
     if (parsed.type === "welcome" && this.spawnedServer && !connected) {
-      trySpawnPopup(this.opts.port);
+      trySpawnPopup(this.opts.port, this.opts.token);
     }
   }
 

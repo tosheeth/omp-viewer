@@ -8,8 +8,11 @@
   </head>
   <body>
     <header>
-      <h1>omp sessions</h1>
-      <span id="conn-state" class="conn-state">connecting&hellip;</span>
+      <div class="header-row">
+        <h1>omp sessions</h1>
+        <span id="conn-state" class="conn-state">connecting&hellip;</span>
+      </div>
+      <div id="usage-rollup" class="usage-rollup"></div>
     </header>
     <nav id="tabs"></nav>
     <main id="panel"></main>
@@ -34,6 +37,7 @@
           <span class="last-activity"></span>
         </div>
         <div class="context-bar"><div class="context-bar-fill"></div></div>
+        <div class="ask-slot"></div>
         <div class="todo-phases"></div>
       </article>
     </template>

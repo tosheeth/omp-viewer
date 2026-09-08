@@ -28,7 +28,31 @@ export interface ContextUsage {
   percent: number;
 }
 
+/** Cumulative session usage, mirroring `SessionManager.getUsageStatistics()`. */
+export interface SessionUsage {
+  tokens: number;
+  cost: number;
+}
+
 export type SessionStatus = "idle" | "busy";
+
+export interface AskOption {
+  label: string;
+  description?: string;
+}
+
+export interface AskQuestion {
+  id: string;
+  question: string;
+  options: AskOption[];
+  multi?: boolean;
+}
+
+export interface AskAnswer {
+  id: string;
+  selectedLabels: string[];
+  customInput?: string;
+}
 
 /** Full state the server holds per connected session; also what it broadcasts to popups. */
 export interface SessionSnapshot {
@@ -44,34 +68,41 @@ export interface SessionSnapshot {
   connectedAt: number;
   todoPhases: TodoPhase[];
   contextUsage?: ContextUsage;
+  usage?: SessionUsage;
 }
 
 // ---- session (extension) -> server ----
 
 export type SessionToServerMessage =
-  | { type: "hello"; sessionId: string; pid: number; cwd: string; sessionName?: string; todoPhases?: TodoPhase[] }
+  | { type: "hello"; token: string; sessionId: string; pid: number; cwd: string; sessionName?: string; todoPhases?: TodoPhase[] }
   | { type: "status"; status: SessionStatus }
   | { type: "tool"; toolName: string }
   | { type: "todo"; phases: TodoPhase[] }
   | { type: "context"; usage: ContextUsage }
+  | { type: "usage"; usage: SessionUsage }
   | { type: "name"; sessionName: string }
-  | { type: "awaiting_input"; waiting: boolean };
+  | { type: "awaiting_input"; waiting: boolean }
+  | { type: "ask_question"; requestId: string; questions: AskQuestion[] }
+  | { type: "ask_resolved"; requestId: string };
 
 // ---- server -> session ----
 
 export type ServerToSessionMessage =
   | { type: "welcome"; dashboardConnected: boolean }
-  | { type: "dashboard_state"; connected: boolean };
+  | { type: "dashboard_state"; connected: boolean }
+  | { type: "ask_answer"; requestId: string; answers: AskAnswer[] };
 
 // ---- dashboard (popup) -> server ----
 
-export type DashboardToServerMessage = { type: "hello"; role: "dashboard" };
+export type DashboardToServerMessage =
+  | { type: "hello"; role: "dashboard"; token: string }
+  | { type: "ask_answer"; requestId: string; answers: AskAnswer[] };
 
 // ---- server -> dashboard (popup) ----
 
-export type ServerToDashboardMessage = {
-  type: "snapshot";
-  sessions: SessionSnapshot[];
-};
+export type ServerToDashboardMessage =
+  | { type: "snapshot"; sessions: SessionSnapshot[] }
+  | { type: "ask_question"; sessionId: string; requestId: string; questions: AskQuestion[] }
+  | { type: "ask_resolved"; requestId: string };
 
 export const DEFAULT_PORT = 8317;

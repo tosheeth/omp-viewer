@@ -4,12 +4,14 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import { resolvePort } from "../shared/port.js";
+import { getOrCreateToken } from "../shared/token.js";
 import type {
   DashboardToServerMessage,
   ServerToDashboardMessage,
   ServerToSessionMessage,
   SessionToServerMessage,
 } from "../shared/types.js";
+import { notifyAwaitingInput } from "./notify.js";
 import { SessionRegistry } from "./state.js";
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "public");
@@ -21,9 +23,12 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
+/** Close code used for a rejected/missing auth token, distinct from an ordinary drop. */
+const UNAUTHORIZED_CLOSE_CODE = 4001;
 
 function main(): void {
   const port = resolvePort();
+  const token = getOrCreateToken();
   const registry = new SessionRegistry();
 
   const httpServer = createServer((req, res) => {
@@ -35,6 +40,8 @@ function main(): void {
   /** Sockets tagged by role so a close handler knows which registry to update. */
   const sessionSockets = new Map<WebSocket, string>();
   const dashboardSockets = new Set<WebSocket>();
+  /** requestId -> the session socket that posted the question, so a dashboard's answer routes back to the right session. */
+  const pendingAsks = new Map<string, WebSocket>();
 
   const broadcastSnapshot = (): void => {
     const message: ServerToDashboardMessage = { type: "snapshot", sessions: registry.snapshotAll() };
@@ -52,8 +59,16 @@ function main(): void {
     }
   };
 
+  const broadcastToDashboards = (message: ServerToDashboardMessage): void => {
+    const payload = JSON.stringify(message);
+    for (const socket of dashboardSockets) {
+      if (socket.readyState === WebSocket.OPEN) socket.send(payload);
+    }
+  };
+
   wss.on("connection", (socket) => {
     let role: "session" | "dashboard" | undefined;
+    let authorized = false;
     (socket as WebSocket & { isAlive?: boolean }).isAlive = true;
     socket.on("pong", () => {
       (socket as WebSocket & { isAlive?: boolean }).isAlive = true;
@@ -68,7 +83,12 @@ function main(): void {
       }
 
       if (parsed.type === "hello" && "role" in parsed && parsed.role === "dashboard") {
+        if (parsed.token !== token) {
+          socket.close(UNAUTHORIZED_CLOSE_CODE, "unauthorized");
+          return;
+        }
         role = "dashboard";
+        authorized = true;
         dashboardSockets.add(socket);
         const welcome: ServerToDashboardMessage = { type: "snapshot", sessions: registry.snapshotAll() };
         socket.send(JSON.stringify(welcome));
@@ -77,12 +97,28 @@ function main(): void {
       }
 
       if (parsed.type === "hello" && "sessionId" in parsed) {
+        if (parsed.token !== token) {
+          socket.close(UNAUTHORIZED_CLOSE_CODE, "unauthorized");
+          return;
+        }
         role = "session";
+        authorized = true;
         sessionSockets.set(socket, parsed.sessionId);
         registry.register(parsed.sessionId, parsed.pid, parsed.cwd, parsed.sessionName, parsed.todoPhases ?? []);
         const welcome: ServerToSessionMessage = { type: "welcome", dashboardConnected: dashboardSockets.size > 0 };
         socket.send(JSON.stringify(welcome));
         broadcastSnapshot();
+        return;
+      }
+
+      if (!authorized) return;
+
+      if (role === "dashboard" && parsed.type === "ask_answer") {
+        const target = pendingAsks.get(parsed.requestId);
+        if (target?.readyState === WebSocket.OPEN) {
+          const message: ServerToSessionMessage = { type: "ask_answer", requestId: parsed.requestId, answers: parsed.answers };
+          target.send(JSON.stringify(message));
+        }
         return;
       }
 
@@ -103,11 +139,27 @@ function main(): void {
         case "context":
           registry.setContextUsage(sessionId, parsed.usage);
           break;
+        case "usage":
+          registry.setUsage(sessionId, parsed.usage);
+          break;
         case "name":
           registry.setSessionName(sessionId, parsed.sessionName);
           break;
-        case "awaiting_input":
-          registry.setAwaitingInput(sessionId, parsed.waiting);
+        case "awaiting_input": {
+          const becameAwaiting = registry.setAwaitingInput(sessionId, parsed.waiting);
+          if (becameAwaiting) {
+            const snapshot = registry.snapshotAll().find((s) => s.sessionId === sessionId);
+            if (snapshot) notifyAwaitingInput(snapshot);
+          }
+          break;
+        }
+        case "ask_question":
+          pendingAsks.set(parsed.requestId, socket);
+          broadcastToDashboards({ type: "ask_question", sessionId, requestId: parsed.requestId, questions: parsed.questions });
+          break;
+        case "ask_resolved":
+          pendingAsks.delete(parsed.requestId);
+          broadcastToDashboards({ type: "ask_resolved", requestId: parsed.requestId });
           break;
       }
       broadcastSnapshot();
@@ -124,6 +176,9 @@ function main(): void {
       if (sessionId) {
         registry.remove(sessionId);
         broadcastSnapshot();
+      }
+      for (const [requestId, questionSocket] of pendingAsks) {
+        if (questionSocket === socket) pendingAsks.delete(requestId);
       }
     });
   });
