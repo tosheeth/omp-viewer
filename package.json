@@ -4,6 +4,7 @@
   "description": "Live cross-session dashboard and todo tracker for oh-my-pi (omp). Shows every locally running omp session, its status, and its todo list in a small popup window.",
   "type": "module",
   "main": "dist/extension.js",
+  "author": "tosheeth <tosheeth@users.noreply.github.com>",
   "license": "MIT",
   "keywords": [
     "omp",
@@ -23,10 +24,14 @@
   },
   "files": [
     "dist",
-    "public"
+    "public",
+    "!dist/**/*.test.js",
+    "!dist/**/*.test.d.ts"
   ],
   "scripts": {
     "build": "tsc -p .",
+    "pretest": "npm run build",
+    "test": "node --test \"dist/**/*.test.js\"",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
