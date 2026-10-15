@@ -43,6 +43,28 @@ function main(): void {
   const dashboardSockets = new Set<WebSocket>();
   /** requestId -> the session socket that posted the question, so a dashboard's answer routes back to the right session. */
   const pendingAsks = new Map<string, WebSocket>();
+  /**
+   * "Check for an open window and open one if there isn't" — evaluated at
+   * server startup AND every time a session connects, not just once. A
+   * fresh bind is one occasion with zero dashboard sockets, but a session
+   * connecting to an already-long-lived server (the common case — the
+   * server rarely restarts) is another, and is what "on start up" means
+   * from the perspective of someone starting a new omp session against a
+   * server that's been running for days, or whose previous popup they
+   * closed. A short cooldown dedupes a burst of sessions connecting within
+   * the same instant (main + subagents, several terminals launched
+   * together) without blocking a genuinely later reopen — e.g. the user
+   * closes the popup, then starts a new session a few seconds later.
+   */
+  let popupAttemptCooldownUntil = 0;
+  const POPUP_RETRY_COOLDOWN_MS = 2_000;
+  const ensurePopupOpen = (): void => {
+    if (dashboardSockets.size > 0) return;
+    const now = Date.now();
+    if (now < popupAttemptCooldownUntil) return;
+    popupAttemptCooldownUntil = now + POPUP_RETRY_COOLDOWN_MS;
+    trySpawnPopup(port, token);
+  };
 
   const broadcastSnapshot = (): void => {
     const message: ServerToDashboardMessage = { type: "snapshot", sessions: registry.snapshotAll() };
@@ -106,6 +128,7 @@ function main(): void {
         authorized = true;
         sessionSockets.set(socket, parsed.sessionId);
         registry.register(parsed.sessionId, parsed.pid, parsed.cwd, parsed.sessionName, parsed.todoPhases ?? []);
+        ensurePopupOpen();
         const welcome: ServerToSessionMessage = { type: "welcome", dashboardConnected: dashboardSockets.size > 0 };
         socket.send(JSON.stringify(welcome));
         broadcastSnapshot();
@@ -209,13 +232,12 @@ function main(): void {
     process.exit(1);
   });
 
-  // The instant this process actually becomes the live server, there is by
-  // definition no dashboard connected yet (it's a fresh process) — open one.
-  // Firing on "listening" rather than unconditionally in `main()` guarantees
-  // this runs exactly once, only for the process that won the bind race
-  // above (a loser calls `process.exit(0)` before ever reaching this event).
+  // The instant this process actually becomes the live server (won the
+  // bind race above), or reset/reinitialized after a crash, there is no
+  // dashboard connected yet — open one immediately rather than waiting for
+  // the first session's hello (which may be seconds away on cold start).
   httpServer.on("listening", () => {
-    trySpawnPopup(port, token);
+    ensurePopupOpen();
   });
 
   httpServer.listen(port, "127.0.0.1");
