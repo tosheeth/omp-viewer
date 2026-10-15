@@ -127,6 +127,13 @@ function main(): void {
       switch (parsed.type) {
         case "status":
           registry.setStatus(sessionId, parsed.status);
+          // Retry opening the popup on every turn_start (status -> busy),
+          // not just on this session's initial hello: the user may have
+          // closed the popup mid-session and kept prompting. The gate's
+          // cooldown means this is a no-op burst-dedup, not a spam risk —
+          // closing the popup only suppresses it for one cooldown window
+          // before the next prompt brings it back.
+          if (parsed.status === "busy") ensurePopupOpen(dashboardSockets.size > 0);
           break;
         case "tool":
           registry.setTool(sessionId, parsed.toolName);

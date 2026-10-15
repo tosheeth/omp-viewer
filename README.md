@@ -39,7 +39,9 @@ page ship inside this package — nothing else to install.
   browser window.
 - Every later session just connects to that server; closing a session
   removes it from the roster within a heartbeat.
-- Run `/dashboard` in any session to reopen the popup if you closed it.
+- Closing the popup is not permanent: the next prompt you send in any
+  session reopens it automatically. Run `/dashboard` instead if you want it
+  back immediately without waiting for your next message.
 - Killing the server (or the machine sleeping/crashing) recovers
   automatically: the next session that can't connect respawns it.
 - The terminal window/tab title updates live with a status glyph

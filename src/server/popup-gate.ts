@@ -11,17 +11,20 @@ export interface PopupGateOptions {
  * Dedupe/cooldown wrapper around opening the dashboard popup.
  *
  * "Check for an open window and open one if there isn't" is evaluated at
- * server startup AND every time a session connects, not just once. A fresh
- * bind is one occasion with zero dashboard sockets, but a session connecting
- * to an already-long-lived server (the common case — the server rarely
- * restarts) is another, and is what "on start up" means from the
- * perspective of someone starting a new omp session against a server
- * that's been running for days, or whose previous popup they closed.
+ * server startup, every time a session connects, AND on every subsequent
+ * turn_start (status -> busy) from an already-connected session — not just
+ * once. A fresh bind is one occasion with zero dashboard sockets; a session
+ * connecting to an already-long-lived server (the common case — the server
+ * rarely restarts) is another; and a user who closed the popup mid-session
+ * and kept prompting is a third — "on start up" means all three from the
+ * perspective of someone who wants the dashboard open whenever they're
+ * actively using a session, not just at the literal first connection.
  *
- * The cooldown dedupes a burst of sessions connecting within the same
- * instant (main + subagents, several terminals launched together) without
- * blocking a genuinely later reopen — e.g. the user closes the popup, then
- * starts a new session a few seconds later.
+ * The cooldown dedupes both a burst of sessions connecting within the same
+ * instant (main + subagents, several terminals launched together) and
+ * repeated turn_start retries within one session, without blocking a
+ * genuinely later reopen — e.g. the user closes the popup, then sends
+ * another prompt a few seconds later.
  *
  * Returns a gate function: call it with whether a dashboard is currently
  * connected, and it spawns a popup at most once per cooldown window,
