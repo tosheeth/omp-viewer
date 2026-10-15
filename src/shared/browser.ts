@@ -54,8 +54,9 @@ function findBrowser(): string | undefined {
  * graceful-degradation requirement, the rest of the dashboard keeps working
  * either way (terminal title glyph, desktop toast, `/dashboard` retry).
  *
- * Used both by the server itself (auto-open exactly once, the instant it
- * wins the startup bind race — see server/index.ts) and by the extension's
+ * Used both by the server itself (auto-open whenever no dashboard is
+ * connected, on bind and on each new session hello — see
+ * `ensurePopupOpen` in server/index.ts) and by the extension's
  * `/dashboard` command (manual reopen after the user closed the window).
  */
 export function trySpawnPopup(port: number, token: string): boolean {
