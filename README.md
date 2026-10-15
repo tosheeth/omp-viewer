@@ -1,5 +1,8 @@
 # omp-viewer
 
+[![npm version](https://img.shields.io/npm/v/omp-viewer.svg)](https://www.npmjs.com/package/omp-viewer)
+[![CI](https://github.com/tosheeth/omp-viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/tosheeth/omp-viewer/actions/workflows/ci.yml)
+
 Live cross-session dashboard and todo tracker for [oh-my-pi](https://github.com/can1357/oh-my-pi) (`omp`).
 
 Shows every locally running `omp` session in a small popup window: cwd, session

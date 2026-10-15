@@ -6,6 +6,14 @@
   "main": "dist/extension.js",
   "author": "tosheeth <tosheeth@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tosheeth/omp-viewer.git"
+  },
+  "homepage": "https://github.com/tosheeth/omp-viewer#readme",
+  "bugs": {
+    "url": "https://github.com/tosheeth/omp-viewer/issues"
+  },
   "keywords": [
     "omp",
     "oh-my-pi",
