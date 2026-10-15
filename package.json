@@ -33,6 +33,7 @@
   "files": [
     "dist",
     "public",
+    "scripts",
     "!dist/**/*.test.js",
     "!dist/**/*.test.d.ts"
   ],
@@ -40,10 +41,12 @@
     "build": "tsc -p .",
     "pretest": "npm run build",
     "test": "cd dist && node --test",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "dependencies": {
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@oh-my-pi/pi-coding-agent": "^18.1.14",

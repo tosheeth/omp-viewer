@@ -16,24 +16,24 @@ this extension registers no new todo tool and adds no tokens to any request).
 npm install --prefix ~/.omp/agent/extensions/omp-viewer omp-viewer
 ```
 
-Then register it in `~/.omp/agent/config.yml` (`omp` does not auto-discover
-anything under `extensions/` — this step is required, not optional):
+That's it — a `postinstall` script registers the extension in
+`~/.omp/agent/config.yml`'s `extensions:` list automatically (`omp` itself,
+confirmed against v18.1.18, does not auto-discover anything under
+`extensions/` on its own; this script is what makes "nothing else to
+install" actually true). It only ever *edits* an existing `config.yml` —
+if you've never run `omp` yet, or the file's `extensions:` key isn't a
+plain list, or anything else goes wrong, it backs off and prints the exact
+YAML to add by hand instead of guessing at your config's shape.
 
-```yaml
-extensions:
-  - ~/.omp/agent/extensions/omp-viewer/node_modules/omp-viewer
-```
+Reload plugins (or start a new `omp` session) once it's registered.
 
-Or skip npm and point `config.yml` straight at a package you dropped
-somewhere yourself:
+To skip npm entirely and point `config.yml` straight at a package you
+dropped somewhere yourself:
 
 ```yaml
 extensions:
   - ./path/to/omp-viewer
 ```
-
-Reload plugins (or start a new `omp` session). The bundled server and popup
-page ship inside this package — nothing else to install.
 
 ## Use
 
