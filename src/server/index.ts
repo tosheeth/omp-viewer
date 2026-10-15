@@ -1,12 +1,12 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { dirname, extname, join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import { resolvePort } from "../shared/port.js";
 import { getOrCreateToken } from "../shared/token.js";
 import { trySpawnPopup } from "../shared/browser.js";
 import { createPopupGate } from "./popup-gate.js";
+import { serveStatic } from "./static.js";
 import type {
   DashboardToServerMessage,
   ServerToDashboardMessage,
@@ -18,12 +18,6 @@ import { SessionRegistry } from "./state.js";
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "public");
 
-const MIME_BY_EXT: Record<string, string> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-};
-
 const HEARTBEAT_INTERVAL_MS = 15_000;
 /** Close code used for a rejected/missing auth token, distinct from an ordinary drop. */
 const UNAUTHORIZED_CLOSE_CODE = 4001;
@@ -34,7 +28,7 @@ function main(): void {
   const registry = new SessionRegistry();
 
   const httpServer = createServer((req, res) => {
-    void serveStatic(req.url, res);
+    void serveStatic(req.url, PUBLIC_DIR, res);
   });
 
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
@@ -221,22 +215,6 @@ function main(): void {
   });
 
   httpServer.listen(port, "127.0.0.1");
-}
-
-async function serveStatic(url: string | undefined, res: import("node:http").ServerResponse): Promise<void> {
-  const path = url === "/" || !url ? "/dashboard.html" : url.split("?")[0]!;
-  const ext = extname(path);
-  const mime = MIME_BY_EXT[ext];
-  if (!mime) {
-    res.writeHead(404).end("Not found");
-    return;
-  }
-  try {
-    const body = await readFile(join(PUBLIC_DIR, path));
-    res.writeHead(200, { "Content-Type": mime, "Cache-Control": "no-store" }).end(body);
-  } catch {
-    res.writeHead(404).end("Not found");
-  }
 }
 
 main();
