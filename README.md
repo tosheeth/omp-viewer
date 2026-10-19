@@ -52,6 +52,12 @@ extensions:
   the right window without the popup at all.
 - A native desktop notification fires the moment any session starts needing
   you (tool approval or a question), on Windows and Linux.
+- Click 📌 in the dashboard header to pin it above every other window, via
+  the browser's native Document Picture-in-Picture API — the same
+  mechanism behind Spotify's web player miniplayer. Click 📍 (or the
+  restore button left in the now-empty original window) to unpin.
+  Chromium 116+ only (Edge/Chrome both qualify); the button is hidden on
+  anything older.
 - Any question the agent asks via the `ask` tool can be answered from either
   the terminal or the popup — whichever you respond to first wins; the other
   is cancelled. Tool-approval prompts ("Allow tool: write/bash/...") are

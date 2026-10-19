@@ -34,6 +34,57 @@ header {
   justify-content: space-between;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pin-btn {
+  padding: 1px 5px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.pin-btn:hover {
+  border-color: var(--dim);
+  color: var(--text);
+}
+
+.pin-btn.pinned {
+  background: var(--idle);
+  border-color: var(--idle);
+  color: var(--bg);
+}
+
+.pin-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100vh;
+  padding: 24px;
+  text-align: center;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.pin-placeholder button {
+  padding: 6px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
 h1 {
   font-size: 13px;
   font-weight: 600;

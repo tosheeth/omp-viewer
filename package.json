@@ -1,6 +1,6 @@
 {
   "name": "omp-viewer",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Live cross-session dashboard and todo tracker for oh-my-pi (omp). Shows every locally running omp session, its status, and its todo list in a small popup window.",
   "type": "module",
   "main": "dist/extension.js",

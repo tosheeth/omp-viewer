@@ -27,11 +27,76 @@ const panelEl = document.getElementById("panel");
 const tabTemplate = document.getElementById("tab-template");
 const panelTemplate = document.getElementById("panel-template");
 
+const pinBtn = document.getElementById("pin-btn");
+const appRoot = document.getElementById("app");
+
 let ws;
 let latestSessions = [];
 let selectedSessionId;
 /** sessionId -> { requestId, questions, answers, submitted } for any pending `ask` question. */
 const pendingAsks = new Map();
+
+// ---- Pin to front (Document Picture-in-Picture) ----
+//
+// The popup spawns as an ordinary chromeless window (see
+// src/shared/browser.ts) — nothing keeps it above other windows until the
+// user asks for that here. Clicking #pin-btn moves #app into a
+// browser-native always-on-top Picture-in-Picture window, the same
+// mechanism Spotify's web player miniplayer uses for its floating
+// controls. That API requires a real user gesture to open (the click
+// itself), so there's no way to pin automatically on load; browsers
+// without it (anything short of Chromium 116) just never see the button.
+if ("documentPictureInPicture" in window) {
+  pinBtn.hidden = false;
+  pinBtn.addEventListener("click", async () => {
+    if (documentPictureInPicture.window) {
+      documentPictureInPicture.window.close();
+      return;
+    }
+
+    const pipWindow = await documentPictureInPicture.requestWindow({ width: 380, height: 288 });
+    for (const styleSheet of document.styleSheets) {
+      try {
+        const cssText = [...styleSheet.cssRules].map((rule) => rule.cssText).join("");
+        const style = pipWindow.document.createElement("style");
+        style.textContent = cssText;
+        pipWindow.document.head.appendChild(style);
+      } catch {
+        const link = pipWindow.document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = styleSheet.href;
+        pipWindow.document.head.appendChild(link);
+      }
+    }
+    pipWindow.document.title = document.title;
+    pipWindow.document.body.append(appRoot);
+    pinBtn.textContent = "\u{1F4CD}";
+    pinBtn.title = "Unpin";
+    pinBtn.classList.add("pinned");
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "pin-placeholder";
+    placeholder.innerHTML = "<p>Dashboard is pinned to front in a separate window.</p>";
+    const restoreBtn = document.createElement("button");
+    restoreBtn.type = "button";
+    restoreBtn.textContent = "Unpin";
+    restoreBtn.addEventListener("click", () => pipWindow.close());
+    placeholder.appendChild(restoreBtn);
+    document.body.appendChild(placeholder);
+
+    pipWindow.addEventListener(
+      "pagehide",
+      () => {
+        placeholder.remove();
+        document.body.prepend(appRoot);
+        pinBtn.textContent = "\u{1F4CC}";
+        pinBtn.title = "Pin to front (stays above other windows)";
+        pinBtn.classList.remove("pinned");
+      },
+      { once: true },
+    );
+  });
+}
 
 function connect(attempt) {
   ws = new WebSocket(`ws://${location.host}/ws`);

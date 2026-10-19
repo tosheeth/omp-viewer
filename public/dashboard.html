@@ -7,15 +7,20 @@
     <link rel="stylesheet" href="/dashboard.css" />
   </head>
   <body>
-    <header>
-      <div class="header-row">
-        <h1>omp sessions</h1>
-        <span id="conn-state" class="conn-state">connecting&hellip;</span>
-      </div>
-      <div id="usage-rollup" class="usage-rollup"></div>
-    </header>
-    <nav id="tabs"></nav>
-    <main id="panel"></main>
+    <div id="app">
+      <header>
+        <div class="header-row">
+          <h1>omp sessions</h1>
+          <div class="header-right">
+            <button id="pin-btn" class="pin-btn" type="button" title="Pin to front (stays above other windows)" hidden>&#128204;</button>
+            <span id="conn-state" class="conn-state">connecting&hellip;</span>
+          </div>
+        </div>
+        <div id="usage-rollup" class="usage-rollup"></div>
+      </header>
+      <nav id="tabs"></nav>
+      <main id="panel"></main>
+    </div>
 
     <template id="tab-template">
       <button type="button" class="tab">

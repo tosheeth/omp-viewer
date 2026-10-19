@@ -58,13 +58,22 @@ function findBrowser(): string | undefined {
  * connected, on bind and on each new session hello — see
  * `ensurePopupOpen` in server/index.ts) and by the extension's
  * `/dashboard` command (manual reopen after the user closed the window).
+ *
+ * Pinning the popup above other windows is handled client-side, by the
+ * popup page itself, via the Document Picture-in-Picture API (see
+ * `public/dashboard.js`) — not here. That API needs a real user gesture
+ * (a click) to open a Picture-in-Picture window, so it can't be done at
+ * spawn time from this process; OS-level alternatives (Win32
+ * `SetWindowPos(HWND_TOPMOST)`, X11 `wmctrl -b add,above`) were tried and
+ * dropped in favor of the browser-native mechanism — same one Spotify's
+ * web player miniplayer uses.
  */
 export function trySpawnPopup(port: number, token: string): boolean {
   const browserPath = findBrowser();
   if (!browserPath) return false;
 
   const url = `http://127.0.0.1:${port}/?token=${encodeURIComponent(token)}`;
-  const child = spawn(browserPath, [`--app=${url}`, "--window-size=380,720"], {
+  const child = spawn(browserPath, [`--app=${url}`, "--window-size=380,288"], {
     detached: true,
     stdio: "ignore",
   });
